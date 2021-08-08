@@ -83,33 +83,17 @@ class TimersManager {
   }
 
   _log(job, timerName) {
-    return (...params) => {  
-      let jobResult
+    return (...params) => {   
+      const jobResult = job(...params)
       
-      try {
-        jobResult = job(...params)
-      
-        this.logs.push({
-          name: timerName,
-          in: params,
-          out: jobResult,
-          created: new Date().toISOString()
-        })
-
-        return jobResult
-      } catch ({name, message, stack}) {
-        this.logs.push({
-          name: timerName,
-          in: params,
-          out: jobResult,
-          error: {
-            name,
-            message,
-            stack
-          },
-          created: new Date().toISOString()
-        })
-      }
+      this.logs.push({
+        name: timerName,
+        in: params,
+        out: jobResult,
+        created: new Date().toISOString()
+      })
+      this.print()
+      return jobResult
     }
   }
 
@@ -124,17 +108,9 @@ const t1 = {
   name: 't1',
   delay: 1000,
   interval: false,
-  job: () => { console.log('t1') }
-};
-const t2 = {
-  name: 't2',
-  delay: 1000,
-  interval: false,
   job: (a, b) => a + b
 };
 
-manager.add(t1);
-manager.add(t2, 1, 2);
+manager.add(t1, 1, 2);
 manager.start();
-console.log(1);
-manager.pause('t1');
+manager.print();
