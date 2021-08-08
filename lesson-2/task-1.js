@@ -1,7 +1,6 @@
 class TimersManager {
   constructor() {
     this.timers = [];
-    this.logs = [];
   }
 
   add(timer, ...rest) {
@@ -73,48 +72,9 @@ class TimersManager {
 
     const createTimer = timer.interval ? setInterval : setTimeout
 
-    const timerId = createTimer(
-      this._log(timer.job, timer.name), 
-      timer.delay, 
-      ...timer.jobParams
-    )
+    const timerId = createTimer(timer.job, timer.delay, ...timer.jobParams)
 
     timer.timerId = timerId   
-  }
-
-  _log(job, timerName) {
-    return (...params) => {  
-      let jobResult
-      
-      try {
-        jobResult = job(...params)
-      
-        this.logs.push({
-          name: timerName,
-          in: params,
-          out: jobResult,
-          created: new Date().toISOString()
-        })
-
-        return jobResult
-      } catch ({name, message, stack}) {
-        this.logs.push({
-          name: timerName,
-          in: params,
-          out: jobResult,
-          error: {
-            name,
-            message,
-            stack
-          },
-          created: new Date().toISOString()
-        })
-      }
-    }
-  }
-
-  print() {
-    console.log('Logs:', this.logs)
   }
 }
 

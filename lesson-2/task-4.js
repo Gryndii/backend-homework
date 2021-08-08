@@ -42,6 +42,12 @@ class TimersManager {
     this.timers.forEach((timer) => {
       this.resume(timer)    
     })
+
+    const awaitTime = this.timers.reduce((prev, current) => (
+      prev > current.delay ? prev : current.delay
+    ), 0) + 10000
+
+    setTimeout(this.stop.bind(this), awaitTime)
   }
 
   stop() {
@@ -83,17 +89,33 @@ class TimersManager {
   }
 
   _log(job, timerName) {
-    return (...params) => {   
-      const jobResult = job(...params)
+    return (...params) => {  
+      let jobResult
       
-      this.logs.push({
-        name: timerName,
-        in: params,
-        out: jobResult,
-        created: new Date().toISOString()
-      })
+      try {
+        jobResult = job(...params)
+      
+        this.logs.push({
+          name: timerName,
+          in: params,
+          out: jobResult,
+          created: new Date().toISOString()
+        })
 
-      return jobResult
+        return jobResult
+      } catch ({name, message, stack}) {
+        this.logs.push({
+          name: timerName,
+          in: params,
+          out: jobResult,
+          error: {
+            name,
+            message,
+            stack
+          },
+          created: new Date().toISOString()
+        })
+      }
     }
   }
 
@@ -106,11 +128,24 @@ const manager = new TimersManager();
 
 const t1 = {
   name: 't1',
-  delay: 1000,
+  delay: 3000,
   interval: false,
   job: (a, b) => a + b
 };
+const t2 = {
+  name: 't2',
+  delay: 2000,
+  interval: false,
+  job: () => {throw new Error('We have a problem!')}
+};
+const t3 = {
+  name: 't3',
+  delay: 5000,
+  interval: false,
+  job: n => n
+};
 
 manager.add(t1, 1, 2);
+manager.add(t2);
+manager.add(t3, 1);
 manager.start();
-manager.print();
