@@ -1,6 +1,7 @@
 class TimersManager {
   constructor() {
     this.timers = [];
+    this.logs = [];
   }
 
   add(timer, ...rest) {
@@ -72,9 +73,32 @@ class TimersManager {
 
     const createTimer = timer.interval ? setInterval : setTimeout
 
-    const timerId = createTimer(timer.job, timer.delay, ...timer.jobParams)
+    const timerId = createTimer(
+      this._log(timer.job, timer.name), 
+      timer.delay, 
+      ...timer.jobParams
+    )
 
     timer.timerId = timerId   
+  }
+
+  _log(job, timerName) {
+    return (...params) => {   
+      const jobResult = job(...params)
+      
+      this.logs.push({
+        name: timerName,
+        in: params,
+        out: jobResult,
+        created: new Date().toISOString()
+      })
+      this.print()
+      return jobResult
+    }
+  }
+
+  print() {
+    console.log('Logs:', this.logs)
   }
 }
 
@@ -99,3 +123,7 @@ manager.add(t2, 1, 2);
 manager.start();
 console.log(1);
 manager.pause('t1');
+
+// manager.add(t1, 1, 2);
+// manager.start();
+// manager.print();
