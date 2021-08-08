@@ -83,17 +83,33 @@ class TimersManager {
   }
 
   _log(job, timerName) {
-    return (...params) => {   
-      const jobResult = job(...params)
+    return (...params) => {  
+      let jobResult
       
-      this.logs.push({
-        name: timerName,
-        in: params,
-        out: jobResult,
-        created: new Date().toISOString()
-      })
-      this.print()
-      return jobResult
+      try {
+        jobResult = job(...params)
+      
+        this.logs.push({
+          name: timerName,
+          in: params,
+          out: jobResult,
+          created: new Date().toISOString()
+        })
+
+        return jobResult
+      } catch ({name, message, stack}) {
+        this.logs.push({
+          name: timerName,
+          in: params,
+          out: jobResult,
+          error: {
+            name,
+            message,
+            stack
+          },
+          created: new Date().toISOString()
+        })
+      }
     }
   }
 
@@ -115,7 +131,7 @@ const t2 = {
   name: 't2',
   delay: 1000,
   interval: false,
-  job: (a, b) => a + b
+  job: (a, b) => {throw new Error('We have a problem!')}
 };
 
 manager.add(t1);
@@ -124,6 +140,40 @@ manager.start();
 console.log(1);
 manager.pause('t1');
 
+//task #2 input
+// const t1 = {
+//   name: 't1',
+//   delay: 1000,
+//   interval: false,
+//   job: (a, b) => a + b
+// };
 // manager.add(t1, 1, 2);
 // manager.start();
 // manager.print();
+
+//task #3 input
+// const t1 = {
+//   name: 't1',
+//   delay: 1000,
+//   interval: false,
+//   job: (a, b) => a + b
+// };
+// const t2 = {
+//   name: 't2',
+//   delay: 1000,
+//   interval: false,
+//   job: () => {throw new Error('We have a problem!')}
+// };
+// const t3 = {
+//   name: 't3',
+//   delay: 1000,
+//   interval: false,
+//   job: n => n
+// };
+// manager.add(t1, 1, 2) // 3
+// manager.add(t2); // undefined
+// manager.add(t3, 1); // 1
+// manager.start();
+// setTimeout(() => {
+//   manager.print();
+// }, 2000);
