@@ -9,6 +9,7 @@ class Bank extends EventEmitter {
     this.on('get', this.#onGet);
     this.on('withdraw', this.#onWithdraw);
     this.on('error', this.#onError);
+    this.on('send', this.#onSend);
   }
 
   register(client) {
@@ -48,6 +49,16 @@ class Bank extends EventEmitter {
   #onError(message) {
     console.log(`Error: ${message}`);    
     throw new Error(message);
+  }
+
+  #onSend(senderId, recieverId, amount) {    
+    this.#validateOnSend(senderId, recieverId, amount);
+
+    const sender = this.#clients.find(client => client.id === senderId);
+    const reciever = this.#clients.find(client => client.id === recieverId);
+  
+    sender.balance -= amount;
+    reciever.balance += amount;
   }
 
   #generateId() {
@@ -100,6 +111,15 @@ class Bank extends EventEmitter {
     }
   }  
 
+  #validateOnSend(senderId, recieverId, amount) {
+    this.#validateExistingId(senderId);
+    this.#validateExistingId(recieverId);
+
+    if(amount <= 0) {
+      this.#throwError('You are trying to send invalid amount.');
+    }
+  }
+
   #validateExistingId(id) {
     const isExisting = this.#clients.some(client => client.id === id);
 
@@ -111,16 +131,18 @@ class Bank extends EventEmitter {
 
 const bank = new Bank();
 
-const personId = bank.register({
+const personFirstId = bank.register({
   name: 'Pitter Black',
   balance: 100
 });
 
-bank.emit('add', personId, 20);
-bank.emit('get', personId, (balance) => {
-  console.log(`I have ${balance}₴`); // I have 120₴
+const personSecondId = bank.register({
+  name: 'Oliver White',
+  balance: 700
 });
-bank.emit('withdraw', personId, 50);
-bank.emit('get', personId, (balance) => {
-  console.log(`I have ${balance}₴`); // I have 70₴
+
+bank.emit('send', personFirstId, personSecondId, 50);
+
+bank.emit('get', personSecondId, (balance) => {
+  console.log(`I have ${balance}₴`); // I have 750₴
 });
