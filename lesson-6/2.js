@@ -27,17 +27,26 @@ class Ui extends Readable {
 
 class Json2csv extends Transform {
   #isHeaderFilled = false;
+  #availableKeys = [];
 
-  constructor() {
+  constructor(availableKeys) {
     super({
       objectMode: true,
     });    
+
+    this.#availableKeys = availableKeys;
   }
 
   #convertToCsvRow(chunk, headerMode) {
     const row = [];
 
     for (let key in chunk) {
+      const isAvailableKey = this.#availableKeys.some(
+        (availableKey) => availableKey === key
+      );
+
+      if (!isAvailableKey) continue;
+
       row.push(
         headerMode ? key : chunk[key].toString().replace(/(\r\n|\n|\r)/gm, "")
       );
@@ -60,7 +69,9 @@ class Json2csv extends Transform {
 }
 
 const ui = new Ui(file);
-const json2csvConverter = new Json2csv();
+const json2csvConverter = new Json2csv(
+  ['postId', 'name', 'body']
+);
 const fileWriteStream = fs.createWriteStream(path.join(__dirname, '/data/comments.csv'));
 
 pipeline(
