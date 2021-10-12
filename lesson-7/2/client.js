@@ -2,18 +2,19 @@ const net = require('net');
 
 const client = new net.Socket();
 const userFilter = JSON.stringify({
-  name: {
-    first: 'John',
-    last: 'd',
+  filter: {
+    name: {
+      first: 'Ron',
+      last: 'McLaughlin'
+    },
+    address: {
+      zip: '9'
+    }
   },
-  phone: '56',
-  address: {
-    zip: '1234',
-    city: 'Kyiv',
-    country: 'ukr',
-    street: 'so'
-  },
-  email: '@gmail.com',
+  meta: {
+    format: 'csv',
+    archive: false
+  }
 });
 
 client.connect(8081, () => {

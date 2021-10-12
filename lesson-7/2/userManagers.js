@@ -1,12 +1,11 @@
 const { Readable, Transform } = require('stream');
+const { EOL } = require('os');
 
 class Ui extends Readable {
   #data = [];
 
-  constructor(data) {    
-    super({
-      objectMode: true,
-    });    
+  constructor(data, options) {    
+    super(options);    
 
     this.#data = JSON.parse(data);
   }
@@ -23,17 +22,15 @@ class Ui extends Readable {
 class Filter extends Transform {
   #filter = {};
 
-  constructor(filter) {
-    super({
-      objectMode: true,
-    });    
+  constructor(filter, options) {
+    super(options);    
 
     this.#init(filter);
   }
 
   #init(filter) {
-    this.#validateFilter(JSON.parse(filter));
-    this.#filter = JSON.parse(filter);
+    this.#validateFilter(filter);
+    this.#filter = filter;
   }
 
   #validateObjectByScheme(object, scheme, objectName = 'Object') {
@@ -99,16 +96,85 @@ class Filter extends Transform {
     }
   }
 
-  #filterObject(object) {
-    console.log('chunk', chunk);
-    // Object.keys(object).
+  #filterObject(object, filter) {  
+    for (const key in filter) {
+      if (
+        typeof object[key] === 'object' && 
+        typeof filter[key] === 'object'
+      ) {
+        const isSubObjectValid = this.#filterObject(
+          object[key], 
+          filter[key]
+        );
+        
+        if (isSubObjectValid) {
+          continue;
+        } else {
+          return false;
+        }
+      }
 
-    //JSON.stringify(chunk)
-    return chunk;
+      if (!object[key].toLowerCase().includes(
+        filter[key].toLowerCase()
+      )) {
+        return false;
+      }
+    }  
+    
+    return true;
   }
 
   _transform(chunk, _, done) {
-    this.push(chunk);
+    const isFiltered = this.#filterObject(chunk, this.#filter);
+
+    if (isFiltered) {
+      this.push(chunk);
+    }
+
+    done();
+  }
+}
+
+class Json2csv extends Transform {
+  #isHeaderFilled = false;
+
+  constructor(options) {
+    super(options);    
+  }
+
+  #convertToCsvRow(chunk, headerMode, withLineBreak = true) {
+    const row = [];
+
+    for (let key in chunk) {
+      if (typeof chunk[key] === 'object') {
+        row.push(
+          this.#convertToCsvRow(chunk[key], headerMode, false)
+        );
+
+        continue;
+      }
+
+      row.push(
+        headerMode ? key : chunk[key].toString().replace(/(\r\n|\n|\r)/gm, "")
+      );      
+    }
+    
+
+    if (headerMode) this.#isHeaderFilled = true;
+
+    return withLineBreak ? row.join() + EOL : row.join();
+  }
+
+  _transform(chunk, _, done) {
+    if (!this.#isHeaderFilled) {
+      this.push(
+        this.#convertToCsvRow(chunk, true)
+      );
+    }
+
+    this.push(
+      this.#convertToCsvRow(chunk, false)
+    );
 
     done();
   }
@@ -117,4 +183,5 @@ class Filter extends Transform {
 module.exports = {
   Ui,
   Filter,
+  Json2csv,
 };
